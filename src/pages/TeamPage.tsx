@@ -145,7 +145,7 @@ export default function TeamPage() {
       <div className="absolute inset-0 bg-grid opacity-30" />
       <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-[#D4AF37]/20 to-transparent" />
 
-      <div className="relative max-w-6xl mx-auto space-y-20">
+      <div className="relative max-w-6xl mx-auto space-y-12 md:space-y-20">
 
         {/* Page Header */}
         <motion.div
@@ -160,7 +160,7 @@ export default function TeamPage() {
               System / Personnel
             </span>
           </div>
-          <h1 className="font-orbitron font-black text-5xl md:text-7xl text-[#F5F5F5] tracking-tight">
+          <h1 className="font-orbitron font-black text-3xl sm:text-5xl md:text-7xl text-[#F5F5F5] tracking-tight">
             The Team
           </h1>
           <p className="font-inter text-white/40 text-base max-w-xl">

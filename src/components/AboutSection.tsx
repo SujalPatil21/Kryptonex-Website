@@ -86,7 +86,7 @@ export default function AboutSection() {
   return (
     <section
       id="about"
-      className="relative min-h-screen flex items-center py-32 px-6 overflow-hidden"
+      className="relative min-h-screen flex items-center py-20 md:py-32 px-6 overflow-hidden"
     >
       {/* Subtle grid */}
       <div className="absolute inset-0 bg-grid opacity-30" />
@@ -166,7 +166,7 @@ export default function AboutSection() {
             </div>
 
             {/* Stats row */}
-            <div className="grid grid-cols-3 gap-4 mt-10 pt-10 border-t border-white/5">
+            <div className="grid grid-cols-3 gap-2 md:gap-4 mt-10 pt-10 border-t border-white/5">
               {[
                 { target: 38, label: 'Active Members', gold: false },
                 { target: 3, label: 'Events Completed', gold: false },

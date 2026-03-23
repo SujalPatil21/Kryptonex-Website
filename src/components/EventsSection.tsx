@@ -42,7 +42,7 @@ function FeaturedEvent() {
       {/* Gold top line */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#D4AF37]/70 to-transparent" />
 
-      <div className="p-8 md:p-10 grid md:grid-cols-3 gap-8 items-start">
+      <div className="p-5 md:p-10 grid md:grid-cols-3 gap-8 items-start">
         {/* Left — title block */}
         <div className="md:col-span-2 space-y-5">
           <div className="flex items-center gap-3 flex-wrap">
@@ -183,7 +183,7 @@ function SystemLogs() {
 // ──────────────────────────────────────────
 export default function EventsSection() {
   return (
-    <section id="events" className="relative py-32 px-6 overflow-hidden scroll-mt-24">
+    <section id="events" className="relative py-20 md:py-32 px-6 overflow-hidden scroll-mt-24">
       <div className="absolute inset-0 bg-grid opacity-20" />
 
       <div className="relative max-w-6xl mx-auto space-y-6">

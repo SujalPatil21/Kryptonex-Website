@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 
 export default function TeamPromo() {
   return (
-    <section id="team-cta" className="relative py-32 px-6 overflow-hidden">
+    <section id="team-cta" className="relative py-20 md:py-32 px-6 overflow-hidden">
       {/* Background accent */}
       <div className="absolute inset-0 bg-grid opacity-20" />
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-[#D4AF37]/3 blur-3xl pointer-events-none" />
@@ -30,7 +30,7 @@ export default function TeamPromo() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.1 }}
-          className="font-orbitron font-black text-4xl md:text-6xl text-[#F5F5F5] tracking-tight"
+          className="font-orbitron font-black text-3xl sm:text-4xl md:text-6xl text-[#F5F5F5] tracking-tight"
         >
           The Team
         </motion.h2>
@@ -64,7 +64,7 @@ export default function TeamPromo() {
         >
           <Link
             to="/team"
-            className="group inline-flex items-center gap-3 px-10 py-4 font-orbitron text-xs tracking-[0.25em] uppercase font-semibold border border-[#D4AF37] text-[#D4AF37] relative overflow-hidden transition-all duration-300 hover:text-[#050505]"
+            className="group inline-flex items-center justify-center gap-3 w-full sm:w-auto px-10 py-4 font-orbitron text-xs tracking-[0.25em] uppercase font-semibold border border-[#D4AF37] text-[#D4AF37] relative overflow-hidden transition-all duration-300 hover:text-[#050505]"
           >
             <span className="absolute inset-0 bg-[#D4AF37] translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
             <span className="relative">[ View Team Members </span>

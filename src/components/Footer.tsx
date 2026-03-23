@@ -11,7 +11,7 @@ export default function Footer() {
         viewport={{ once: true }}
         className="relative max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 text-center md:text-left">
           <img src="/Logo.png" alt="Kryptonex" className="h-7 w-auto opacity-80" />
           <div>
             <p className="font-orbitron font-bold text-sm tracking-widest text-[#F5F5F5]">KRYPTONEX</p>
@@ -24,7 +24,7 @@ export default function Footer() {
           <span className="font-mono text-xs text-white/30 tracking-widest">SYSTEM ACTIVE</span>
         </div>
 
-        <p className="font-inter text-xs text-white/30">
+        <p className="font-inter text-xs text-white/30 text-center md:text-left">
           © 2026 Kryptonex. All rights reserved.
         </p>
       </motion.div>

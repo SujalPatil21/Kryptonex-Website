@@ -231,7 +231,7 @@ export default function HeroSection() {
                   visible: { opacity: 1, y: 0, filter: 'blur(0px)' },
                 }}
                 transition={{ duration: 0.8, delay: 0, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="font-orbitron font-black text-5xl md:text-7xl lg:text-8xl tracking-[0.18em] text-[#F5F5F5] uppercase"
+                className="font-orbitron font-black text-3xl sm:text-5xl md:text-7xl lg:text-8xl tracking-[0.18em] text-[#F5F5F5] uppercase"
                 style={{ textShadow: '0 0 40px rgba(212,175,55,0.2)' }}
               >
                 KRYPTONEX
@@ -288,14 +288,14 @@ export default function HeroSection() {
                 onClick={() =>
                   document.getElementById('events')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                 }
-                className="group relative px-8 py-3 font-orbitron text-xs tracking-[0.2em] uppercase font-semibold border border-[#D4AF37] text-[#D4AF37] overflow-hidden transition-all duration-300 hover:text-[#050505] bg-transparent cursor-pointer"
+                className="group relative w-full sm:w-auto px-8 py-3 font-orbitron text-xs tracking-[0.2em] uppercase font-semibold border border-[#D4AF37] text-[#D4AF37] overflow-hidden transition-all duration-300 hover:text-[#050505] bg-transparent cursor-pointer"
               >
                 <span className="absolute inset-0 bg-[#D4AF37] translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
                 <span className="relative">[ View Events ]</span>
               </button>
               <Link
                 to="/team"
-                className="group relative px-8 py-3 font-orbitron text-xs tracking-[0.2em] uppercase font-semibold border border-white/20 text-white/70 overflow-hidden transition-all duration-300 hover:text-[#050505] hover:border-white/50"
+                className="group relative w-full sm:w-auto px-8 py-3 font-orbitron text-xs tracking-[0.2em] uppercase font-semibold border border-white/20 text-white/70 overflow-hidden transition-all duration-300 hover:text-[#050505] hover:border-white/50"
               >
                 <span className="absolute inset-0 bg-white/90 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
                 <span className="relative">[ View Team ]</span>
