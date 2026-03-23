@@ -89,10 +89,28 @@ The website is built with modern UI/UX principles, smooth animations, and perfor
 
 ---
 
-## Getting Started
+## Design Philosophy
 
-```bash
-git clone https://github.com/your-username/kryptonex-website.git
-cd kryptonex-website
-npm install
-npm run dev
+This project focuses on execution-driven engineering and real-world system building rather than theoretical learning.
+
+---
+
+## Author
+
+Sujal Patil  
+Engineering Student focused on backend systems and scalable applications  
+
+---
+
+## Future Improvements
+
+- Event registration system  
+- Admin dashboard  
+- Dynamic event management  
+- Member management system  
+
+---
+
+## Final Note
+
+This project demonstrates practical frontend engineering with a strong focus on design, interaction, and real-world usability.
