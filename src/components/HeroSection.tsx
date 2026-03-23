@@ -173,7 +173,7 @@ export default function HeroSection() {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#050505] scroll-mt-24"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[#050505]"
     >
       {/* Grid background */}
       <div className="absolute inset-0 bg-grid opacity-40" style={{ zIndex: 0 }} />
@@ -191,7 +191,7 @@ export default function HeroSection() {
       />
 
       {/* Content */}
-      <div className="relative flex flex-col items-center justify-center text-center px-6 gap-6" style={{ zIndex: 3 }}>
+      <div className="relative flex flex-col items-center justify-center text-center px-4 sm:px-6 gap-4 sm:gap-6 pt-16 md:pt-0 max-w-full" style={{ zIndex: 3 }}>
 
         {/* Logo */}
         <AnimatePresence>
@@ -206,7 +206,7 @@ export default function HeroSection() {
               <img
                 src="/Logo.png"
                 alt="Kryptonex"
-                className="w-36 h-36 md:w-48 md:h-48 object-contain select-none"
+                className="w-28 sm:w-36 md:w-48 h-auto object-contain select-none mx-auto"
                 style={{
                   filter: 'drop-shadow(0 0 20px rgba(193,18,31,0.6)) drop-shadow(0 0 60px rgba(193,18,31,0.25))',
                 }}
