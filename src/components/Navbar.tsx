@@ -2,11 +2,16 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useAuth } from '../context/AuthContext'
+import AdminLoginModal from './AdminLoginModal'
 
 export default function Navbar() {
+  const { isAdmin, logout } = useAuth()
   const [scrolled, setScrolled] = useState(false)
   const [activeSection, setActiveSection] = useState<string>('home')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -63,8 +68,15 @@ export default function Navbar() {
     }
   }
 
+  const handleLogout = () => {
+    logout()
+    navigate('/')
+    setMenuOpen(false)
+  }
+
   const isActive = (key: string) => {
     if (location.pathname === '/team') return key === 'team'
+    if (location.pathname === '/admin') return key === 'admin'
     return activeSection === key
   }
 
@@ -130,6 +142,29 @@ export default function Navbar() {
               Team
               <span className={underlineClass('team')} />
             </Link>
+
+            {/* Admin Conditional Links */}
+            {!isAdmin ? (
+               <button
+                 onClick={() => setIsModalOpen(true)}
+                 className="font-inter text-[10px] font-bold tracking-[0.2em] border border-[#D4AF37]/40 px-3 py-1 text-[#D4AF37]/70 hover:text-[#D4AF37] hover:border-[#D4AF37] transition-all duration-300 uppercase"
+               >
+                 [ Admin ]
+               </button>
+            ) : (
+              <div className="flex items-center gap-6">
+                 <Link to="/admin" className={linkClass('admin')}>
+                   Admin Panel
+                   <span className={underlineClass('admin')} />
+                 </Link>
+                 <button
+                   onClick={handleLogout}
+                   className="font-inter text-[10px] font-bold tracking-[0.2em] text-red-500/70 hover:text-red-500 transition-colors uppercase"
+                 >
+                   Logout
+                 </button>
+              </div>
+            )}
           </div>
 
           {/* Hamburger — visible on mobile only */}
@@ -156,6 +191,12 @@ export default function Navbar() {
           </button>
         </div>
       </motion.nav>
+
+      {/* Admin Login Modal */}
+      <AdminLoginModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
 
       {/* Mobile Menu Overlay */}
       <AnimatePresence>
@@ -194,6 +235,31 @@ export default function Navbar() {
               >
                 Team
               </Link>
+
+              {isAdmin ? (
+                <>
+                  <Link
+                    to="/admin"
+                    onClick={() => setMenuOpen(false)}
+                    className="font-orbitron text-2xl tracking-[0.2em] uppercase text-[#D4AF37]"
+                  >
+                    Admin Panel
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="font-orbitron text-xl tracking-[0.2em] uppercase text-red-500 bg-transparent border-0 cursor-pointer"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => { setIsModalOpen(true); setMenuOpen(false); }}
+                  className="font-orbitron text-2xl tracking-[0.2em] uppercase text-white/40 bg-transparent border-0 cursor-pointer"
+                >
+                  Admin Login
+                </button>
+              )}
 
               {/* Gold divider */}
               <div className="h-px w-16 bg-gradient-to-r from-transparent via-[#D4AF37]/50 to-transparent" />
