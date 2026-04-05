@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { API } from '../config/api'
 
 interface AdminLoginModalProps {
     isOpen: boolean
@@ -31,7 +32,7 @@ export default function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProp
         setIsLoading(true)
 
         try {
-            const response = await fetch('http://localhost:8080/api/admin/login', {
+            const response = await fetch(`${API.MAIN}/admin/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })

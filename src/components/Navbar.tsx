@@ -7,20 +7,12 @@ import AdminLoginModal from './AdminLoginModal'
 
 export default function Navbar() {
   const { isAdmin, logout } = useAuth()
-  const [scrolled, setScrolled] = useState(false)
   const [activeSection, setActiveSection] = useState<string>('home')
   const [menuOpen, setMenuOpen] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   
   const location = useLocation()
   const navigate = useNavigate()
-
-  // Background blur on scroll
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
-    window.addEventListener('scroll', onScroll)
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
 
   // Close menu on route change
   useEffect(() => {
@@ -96,11 +88,7 @@ export default function Navbar() {
         initial={{ y: -80, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: 'easeOut', delay: 0.3 }}
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          scrolled
-            ? 'bg-[#050505]/90 backdrop-blur-xl border-b border-[#D4AF37]/20 shadow-[0_0_40px_rgba(193,18,31,0.08)]'
-            : 'bg-transparent backdrop-blur-sm border-b border-white/5'
-        }`}
+        className="fixed top-0 left-0 right-0 w-full z-50 transition-all duration-500 bg-black border-b border-gray-800"
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           {/* Logo + Brand */}

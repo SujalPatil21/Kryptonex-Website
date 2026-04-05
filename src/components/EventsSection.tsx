@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { API } from '../config/api'
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -248,7 +249,7 @@ export default function EventsSection() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await fetch("http://localhost:8080/api/events")
+        const res = await fetch(`${API.MAIN}/events`)
         const json = await res.json()
         if (json.success) {
           setEvents(json.data)
