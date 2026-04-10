@@ -2,7 +2,7 @@
 
 ## Live Preview
 
-[![Kryptonex Preview](./Preview.png)](https://kryptonex-website.vercel.app/)
+[![Kryptonex Preview](Preview.png)](https://kryptonex-website.vercel.app/)
 
 ---
 
