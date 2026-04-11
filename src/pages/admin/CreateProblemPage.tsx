@@ -21,6 +21,11 @@ export default function CreateProblemPage() {
   const [contestId, setContestId] = useState<number | "">(searchParams.get("contestId") ? Number(searchParams.get("contestId")) : "")
   const [testCases, setTestCases] = useState<TestCaseInputs[]>([{ input: "", output: "", isHidden: true }])
   
+  // Function Metadata for Backend Judge
+  const [functionName, setFunctionName] = useState("")
+  const [parameterTypes, setParameterTypes] = useState("")
+  const [returnType, setReturnType] = useState("")
+  
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
@@ -45,8 +50,8 @@ export default function CreateProblemPage() {
     e.preventDefault()
     setError("")
 
-    if (!title.trim() || !description.trim() || !contestId || timeLimit === "") {
-      setError("Please fill out all required problem fields.")
+    if (!title.trim() || !description.trim() || !contestId || timeLimit === "" || !functionName.trim() || !parameterTypes.trim() || !returnType.trim()) {
+      setError("Please fill out all required problem fields (including function metadata).")
       return
     }
 
@@ -61,7 +66,10 @@ export default function CreateProblemPage() {
         timeLimit: Number(timeLimit),
         sampleInput: sampleInput.trim(),
         sampleOutput: sampleOutput.trim(),
-        constraints: ""
+        constraints: "",
+        functionName: functionName.trim(),
+        parameterTypes: parameterTypes.trim(),
+        returnType: returnType.trim()
       }
 
       const problemRes = await fetch(`${API.CONTEST}/contests/${contestId}/problems`, {
@@ -138,6 +146,37 @@ export default function CreateProblemPage() {
                 className="w-full bg-[#050505] border border-white/10 text-white p-3 font-inter text-sm focus:outline-none focus:border-[#D4AF37]/50 transition-colors"
                 placeholder="Two Sum" required
               />
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-white/5 space-y-6">
+            <h3 className="font-orbitron font-bold text-[10px] text-[#D4AF37] uppercase tracking-[0.2em] border-l-2 border-[#D4AF37] pl-3">
+              Function Metadata
+            </h3>
+            
+            <div className="space-y-2">
+              <label className="font-mono text-white/50 text-[10px] uppercase tracking-widest">Function Name</label>
+              <input type="text" value={functionName} onChange={(e) => setFunctionName(e.target.value)}
+                className="w-full bg-[#050505] border border-white/10 text-white p-3 font-mono text-sm focus:outline-none focus:border-[#D4AF37]/50 transition-colors"
+                placeholder="e.g. twoSum" required
+              />
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="font-mono text-white/50 text-[10px] uppercase tracking-widest">Parameter Types</label>
+                <input type="text" value={parameterTypes} onChange={(e) => setParameterTypes(e.target.value)}
+                  className="w-full bg-[#050505] border border-white/10 text-white p-3 font-mono text-sm focus:outline-none focus:border-[#D4AF37]/50 transition-colors"
+                  placeholder="e.g. int[], int" required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="font-mono text-white/50 text-[10px] uppercase tracking-widest">Return Type</label>
+                <input type="text" value={returnType} onChange={(e) => setReturnType(e.target.value)}
+                  className="w-full bg-[#050505] border border-white/10 text-white p-3 font-mono text-sm focus:outline-none focus:border-[#D4AF37]/50 transition-colors"
+                  placeholder="e.g. int[]" required
+                />
+              </div>
             </div>
           </div>
 

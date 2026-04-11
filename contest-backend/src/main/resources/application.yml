@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: contest-backend
+  datasource:
+    url: jdbc:postgresql://localhost:5433/contest_db
+    username: postgres
+    password: postgre
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+server:
+  port: 8080
