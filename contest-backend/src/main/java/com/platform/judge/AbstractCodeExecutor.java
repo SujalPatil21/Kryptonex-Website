@@ -33,7 +33,7 @@ public abstract class AbstractCodeExecutor implements CodeExecutor {
      *
      * Drain threads are started before waitFor() to prevent pipe-buffer deadlock.
      */
-    protected ExecutionResult runProcess(ProcessBuilder pb, String input) {
+    protected ExecutionResult runProcess(ProcessBuilder pb) {
         try {
             Process process = pb.start();
 
@@ -46,10 +46,8 @@ public abstract class AbstractCodeExecutor implements CodeExecutor {
             outThread.start();
             errThread.start();
 
-            // ---- 2. Write stdin --------------------------------------------------
-            // Done AFTER drain threads are live so the child can simultaneously
-            // write to stdout while we are prepared to drain it.
-            writeInput(process, input);
+            // ---- 2. Close stdin immediately --------------------------------------
+            process.getOutputStream().close();
 
             // ---- 3. Time only the run phase ------------------------------------
             long startTime = System.currentTimeMillis();
@@ -109,19 +107,6 @@ public abstract class AbstractCodeExecutor implements CodeExecutor {
     //  Private helpers                                                     //
     // ------------------------------------------------------------------ //
 
-    /** Write {@code input} to the process stdin then close (send EOF). */
-    private void writeInput(Process process, String input) {
-        try (BufferedWriter writer = new BufferedWriter(
-                new OutputStreamWriter(process.getOutputStream()))) {
-            if (input != null && !input.isEmpty()) {
-                writer.write(input);
-                writer.flush();
-            }
-            // auto-close sends EOF regardless of whether we wrote anything
-        } catch (IOException ignored) {
-            // Child may have already exited; closing a broken pipe is fine
-        }
-    }
 
     /** Create a daemon thread that drains {@code is} into {@code target}. */
     private Thread drainThread(InputStream is, AtomicReference<String> target) {

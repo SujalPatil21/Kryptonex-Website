@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react"
 import { useParams, Link } from "react-router-dom"
+import { AnimatePresence } from "framer-motion"
 import ProblemList, { ProblemData } from "../../components/code/ProblemList"
 import { ContestData } from "../../components/code/ContestCard"
 import { API } from "../../config/api"
 import { useAuth } from "../../context/AuthContext"
+import GuestUserModal from "../../components/code/GuestUserModal"
 
 export default function ContestDetailPage() {
   const { id } = useParams()
   const [contest, setContest] = useState<ContestData | null>(null)
   const [problems, setProblems] = useState<ProblemData[]>([])
   const [loading, setLoading] = useState(true)
+  const [showGuestModal, setShowGuestModal] = useState(false)
   const { isAdmin } = useAuth()
 
   useEffect(() => {
@@ -26,6 +29,12 @@ export default function ContestDetailPage() {
       console.error(err)
       setLoading(false)
     })
+
+    // Guest Auth Check
+    const storedUserId = localStorage.getItem("userId")
+    if (!storedUserId) {
+      setShowGuestModal(true)
+    }
   }, [id])
 
   if (loading) {
@@ -46,6 +55,12 @@ export default function ContestDetailPage() {
 
   return (
     <div className="relative pt-32 pb-20 px-6 min-h-screen">
+      <AnimatePresence>
+        {showGuestModal && (
+          <GuestUserModal onSuccess={() => setShowGuestModal(false)} />
+        )}
+      </AnimatePresence>
+
       <div className="max-w-5xl mx-auto space-y-10">
         
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-8">

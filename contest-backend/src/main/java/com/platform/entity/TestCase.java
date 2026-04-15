@@ -1,7 +1,11 @@
 package com.platform.entity;
 
+import com.platform.converter.JsonMapConverter;
+import com.platform.converter.JsonObjectConverter;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.Map;
 
 @Entity
 @Table(name = "test_cases")
@@ -19,11 +23,13 @@ public class TestCase {
     @JoinColumn(name = "problem_id", nullable = false)
     private Problem problem;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String input;
+    @Convert(converter = JsonMapConverter.class)
+    @Column(columnDefinition = "text", nullable = false)
+    private Map<String, Object> inputJson;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String output;
+    @Convert(converter = JsonObjectConverter.class)
+    @Column(columnDefinition = "text", nullable = false)
+    private Object expectedOutputJson;
 
     @Column(nullable = false)
     private boolean isHidden;

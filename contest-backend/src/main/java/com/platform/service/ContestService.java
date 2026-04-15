@@ -3,7 +3,6 @@ package com.platform.service;
 import com.platform.dto.ContestRequest;
 import com.platform.dto.ContestResponse;
 import com.platform.entity.Contest;
-import com.platform.entity.User;
 import com.platform.exception.ResourceNotFoundException;
 import com.platform.repository.ContestRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,16 +16,13 @@ import java.util.stream.Collectors;
 public class ContestService {
 
     private final ContestRepository contestRepository;
-    private final UserService userService;
 
     public ContestResponse createContest(ContestRequest request) {
-        User createdBy = userService.getUserEntityById(request.getCreatedBy());
-
         Contest contest = Contest.builder()
                 .title(request.getTitle())
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
-                .createdBy(createdBy)
+                .createdBy("ADMIN")
                 .build();
 
         Contest saved = contestRepository.save(contest);
@@ -57,7 +53,7 @@ public class ContestService {
                 .startTime(contest.getStartTime())
                 .endTime(contest.getEndTime())
                 .status(contest.getStatus())
-                .createdBy(contest.getCreatedBy().getId())
+                .createdBy(contest.getCreatedBy())
                 .build();
     }
 }

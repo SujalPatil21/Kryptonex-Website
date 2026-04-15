@@ -4,6 +4,7 @@ import com.platform.dto.ProblemRequest;
 import com.platform.dto.ProblemResponse;
 import com.platform.entity.Contest;
 import com.platform.entity.Problem;
+import com.platform.entity.Parameter;
 import com.platform.exception.ResourceNotFoundException;
 import com.platform.repository.ProblemRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,9 @@ public class ProblemService {
                 .sampleInput(request.getSampleInput())
                 .sampleOutput(request.getSampleOutput())
                 .functionName(request.getFunctionName())
-                .parameterTypes(request.getParameterTypes())
+                .parameters(request.getParameters().stream()
+                        .map(p -> new Parameter(p.getName(), p.getType()))
+                        .collect(Collectors.toList()))
                 .returnType(request.getReturnType())
                 .build();
 
@@ -71,7 +74,6 @@ public class ProblemService {
                 .sampleInput(problem.getSampleInput())
                 .sampleOutput(problem.getSampleOutput())
                 .functionName(problem.getFunctionName())
-                .parameterTypes(problem.getParameterTypes())
                 .returnType(problem.getReturnType())
                 .build();
     }

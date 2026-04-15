@@ -7,6 +7,7 @@ import com.platform.entity.enums.SubmissionStatus;
 import com.platform.repository.SubmissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -36,40 +37,48 @@ public class SubmissionService {
     //  Submit                                                              //
     // ------------------------------------------------------------------ //
 
+    @Transactional
     public SubmissionResponse submit(Long contestId, SubmissionRequest request) {
+        if (request.getUserId() == null) {
+            throw new RuntimeException("User ID missing");
+        }
 
-        // ---- Resolve domain objects -----------------------------------
-        User    user    = userService.getUserEntityById(request.getUserId());
-        Contest contest = contestService.getContestEntityById(contestId);
-        Problem problem = problemService.getProblemEntityById(request.getProblemId());
+        try {
+            // ---- Resolve domain objects -----------------------------------
+            User    user    = userService.getUserEntityById(request.getUserId());
+            Contest contest = contestService.getContestEntityById(contestId);
+            Problem problem = problemService.getProblemEntityById(request.getProblemId());
 
-        // ---- Run judge -----------------------------------------------
-        List<TestCase> testCases = problem.getTestCases();
-        CodeExecutionService.EvaluationResult evalResult = codeExecutionService.evaluate(
-                request.getCode(),
-                request.getLanguage(),
-                testCases
-        );
+            // ---- Run judge -----------------------------------------------
+            CodeExecutionService.EvaluationResult evalResult = codeExecutionService.evaluate(
+                    problem,
+                    request.getCode(),
+                    request.getLanguage()
+            );
 
-        // ---- Calculate score -----------------------------------------
-        // Partial credit: proportion of passed test cases × 100
-        int score = calculateScore(evalResult.getPassedCount(), evalResult.getTotalCount());
+            // ---- Calculate score -----------------------------------------
+            // Partial credit: proportion of passed test cases × 100
+            int score = calculateScore(evalResult.getPassedCount(), evalResult.getTotalCount());
 
-        // ---- Persist submission --------------------------------------
-        Submission submission = Submission.builder()
-                .user(user)
-                .problem(problem)
-                .contest(contest)
-                .code(request.getCode())
-                .language(request.getLanguage())
-                .status(evalResult.getStatus())
-                .verdictMessage(evalResult.getVerdictMessage())
-                .score(score)
-                .executionTime(evalResult.getTotalExecutionTime())
-                .build();
+            // ---- Persist submission --------------------------------------
+            Submission submission = Submission.builder()
+                    .user(user)
+                    .problem(problem)
+                    .contest(contest)
+                    .code(request.getCode())
+                    .language(request.getLanguage())
+                    .status(evalResult.getStatus())
+                    .verdictMessage(evalResult.getVerdictMessage())
+                    .score(score)
+                    .executionTime(evalResult.getTotalExecutionTime())
+                    .build();
 
-        Submission saved = submissionRepository.save(submission);
-        return mapToResponse(saved);
+            Submission saved = submissionRepository.save(submission);
+            return mapToResponse(saved);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Submission failed: " + e.getMessage());
+        }
     }
 
     // ------------------------------------------------------------------ //

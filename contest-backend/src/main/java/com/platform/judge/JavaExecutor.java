@@ -41,7 +41,7 @@ public class JavaExecutor extends AbstractCodeExecutor {
     }
 
     @Override
-    public ExecutionResult execute(String code, String input) {
+    public ExecutionResult execute(String code) {
         // Input validation
         if (code == null || code.isBlank()) {
             return ExecutionResult.builder()
@@ -79,7 +79,7 @@ public class JavaExecutor extends AbstractCodeExecutor {
             // ---------- RUN (timing starts inside AbstractCodeExecutor.runProcess) ----------
             ProcessBuilder runPb = new ProcessBuilder("java", "Main");
             runPb.directory(tempDir.toFile());
-            return runProcess(runPb, input);
+            return runProcess(runPb);
 
         } catch (Exception e) {
             return ExecutionResult.builder()

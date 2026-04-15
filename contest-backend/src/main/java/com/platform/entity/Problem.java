@@ -58,13 +58,10 @@ public class Problem {
     @Column(nullable = false)
     private String returnType;
 
-    /**
-     * Comma-separated, ordered list of Java parameter types.
-     * Example: "int[],int" means the function takes (int[] nums, int target).
-     * Stored as a single string to avoid a separate join table.
-     */
-    @Column(nullable = false)
-    private String parameterTypes;
+    @ElementCollection
+    @CollectionTable(name = "problem_parameters", joinColumns = @JoinColumn(name = "problem_id"))
+    @Builder.Default
+    private List<Parameter> parameters = new ArrayList<>();
 
     @OneToMany(mappedBy = "problem", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

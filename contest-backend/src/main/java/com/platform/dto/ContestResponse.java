@@ -13,5 +13,5 @@ public class ContestResponse {
     private OffsetDateTime startTime;
     private OffsetDateTime endTime;
     private ContestStatus status;
-    private Long createdBy;
+    private String createdBy;
 }

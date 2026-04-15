@@ -50,6 +50,12 @@ public class ExecutionResult {
      */
     private int exitCode;
 
+    /**
+     * True when the process exited with code != 0 during the run phase,
+     * and it was not a timeout.
+     */
+    private boolean isRuntimeError;
+
     private boolean outputLimitExceeded;
 
     public boolean isOutputLimitExceeded() {

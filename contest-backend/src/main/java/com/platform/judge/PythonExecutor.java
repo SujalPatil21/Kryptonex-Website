@@ -15,7 +15,7 @@ public class PythonExecutor extends AbstractCodeExecutor {
     }
 
     @Override
-    public ExecutionResult execute(String code, String input) {
+    public ExecutionResult execute(String code) {
         Path tempDir = null;
         try {
             tempDir = Files.createTempDirectory("judge_python_");
@@ -25,7 +25,7 @@ public class PythonExecutor extends AbstractCodeExecutor {
             ProcessBuilder pb = new ProcessBuilder("python", "temp.py");
             pb.directory(tempDir.toFile());
 
-            return runProcess(pb, input);
+            return runProcess(pb);
 
         } catch (Exception e) {
             return ExecutionResult.builder()

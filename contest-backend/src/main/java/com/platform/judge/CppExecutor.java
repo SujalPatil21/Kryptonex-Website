@@ -15,7 +15,7 @@ public class CppExecutor extends AbstractCodeExecutor {
     }
 
     @Override
-    public ExecutionResult execute(String code, String input) {
+    public ExecutionResult execute(String code) {
         Path tempDir = null;
         try {
             tempDir = Files.createTempDirectory("judge_cpp_");
@@ -45,7 +45,7 @@ public class CppExecutor extends AbstractCodeExecutor {
             ProcessBuilder runPb = new ProcessBuilder(runCmd);
             runPb.directory(tempDir.toFile());
 
-            return runProcess(runPb, input);
+            return runProcess(runPb);
 
         } catch (Exception e) {
             return ExecutionResult.builder()

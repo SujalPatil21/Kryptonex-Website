@@ -15,7 +15,4 @@ public class ContestRequest {
 
     @NotNull(message = "End time cannot be null")
     private OffsetDateTime endTime;
-
-    @NotNull(message = "CreatedBy user ID cannot be null")
-    private Long createdBy;
 }

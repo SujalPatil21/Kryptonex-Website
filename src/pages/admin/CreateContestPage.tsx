@@ -30,13 +30,13 @@ export default function CreateContestPage() {
     }
 
     setLoading(true)
+    setError("")
 
     try {
       const payload = {
         title: title.trim(),
         startTime: new Date(startTime).toISOString(),
-        endTime: new Date(endTime).toISOString(),
-        createdBy: 2
+        endTime: new Date(endTime).toISOString()
       }
 
       const res = await fetch(`${API.CONTEST}/contests`, {
@@ -46,7 +46,9 @@ export default function CreateContestPage() {
       })
 
       if (!res.ok) {
-        throw new Error("Failed to create contest. Check server logs.")
+        const errorData = await res.json().catch(() => ({}))
+        console.error("FULL ERROR:", errorData)
+        throw new Error(errorData.message || "Failed to create contest. Check console for details.")
       }
 
       navigate("/code")

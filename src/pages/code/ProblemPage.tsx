@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import { useParams, Link } from "react-router-dom"
+import { AnimatePresence } from "framer-motion"
 import CodeEditor from "../../components/code/CodeEditor"
+import GuestUserModal from "../../components/code/GuestUserModal"
 import { API } from "../../config/api"
 
 interface ProblemDetail {
@@ -13,12 +15,9 @@ interface ProblemDetail {
   timeLimit?: number
   sampleInput?: string
   sampleOutput?: string
-}
-
-const STARTER_CODE: Record<string, string> = {
-  Java: "public class Main {\n    public static void main(String[] args) {\n        // Your code here\n    }\n}",
-  Python: "def solve():\n    # Your code here\n    pass\n\nif __name__ == '__main__':\n    solve()",
-  "C++": "#include <iostream>\nusing namespace std;\n\nint main() {\n    // Your code here\n    return 0;\n}"
+  functionName?: string
+  returnType?: string
+  parameters?: { name: string, type: string }[]
 }
 
 export default function ProblemPage() {
@@ -27,11 +26,26 @@ export default function ProblemPage() {
   const [loading, setLoading] = useState(true)
   
   const [language, setLanguage] = useState("Java")
-  const [code, setCode] = useState(STARTER_CODE["Java"])
+  const [code, setCode] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<any>(null)
 
+  // Auth/Identity states
+  const [userId, setUserId] = useState<number | null>(() => {
+    const stored = localStorage.getItem("userId")
+    return stored ? parseInt(stored) : null
+  })
+  const [showGuestModal, setShowGuestModal] = useState(!userId)
+
   useEffect(() => {
+    const storedUserId = localStorage.getItem("userId")
+    if (!storedUserId) {
+      setShowGuestModal(true)
+    } else {
+      setUserId(parseInt(storedUserId))
+      setShowGuestModal(false)
+    }
+
     fetch(`${API.CONTEST}/problems/${id}`)
       .then(r => {
         if (!r.ok) throw new Error("Problem not found")
@@ -39,6 +53,9 @@ export default function ProblemPage() {
       })
       .then(data => {
         setProblem(data || null)
+        if (data) {
+          setCode(generateStarterCode("Java", data))
+        }
         setLoading(false)
       })
       .catch((err) => {
@@ -48,21 +65,48 @@ export default function ProblemPage() {
       })
   }, [id])
 
+  const generateStarterCode = (lang: string, prob: any) => {
+    if (!prob || !prob.parameters || !prob.functionName) return "";
+    
+    const paramsList = prob.parameters;
+    const argsStrJava = paramsList.map((p: any) => `${p.type === 'int_array' ? 'int[]' : p.type === 'string' ? 'String' : p.type === 'string_array' ? 'String[]' : p.type} ${p.name}`).join(", ");
+    const argsStrPy = paramsList.map((p: any) => p.name).join(", ");
+    const argsStrCpp = paramsList.map((p: any) => `${p.type === 'int_array' ? 'vector<int>' : p.type === 'string' ? 'string' : p.type === 'string_array' ? 'vector<string>' : p.type} ${p.name}`).join(", ");
+    
+    const retJava = prob.returnType === 'int_array' ? 'int[]' : prob.returnType === 'string' ? 'String' : prob.returnType === 'string_array' ? 'String[]' : prob.returnType || 'void';
+    const retCpp = prob.returnType === 'int_array' ? 'vector<int>' : prob.returnType === 'string' ? 'string' : prob.returnType === 'string_array' ? 'vector<string>' : prob.returnType || 'void';
+
+    if (lang === "Java") {
+      return `class Solution {\n    public ${retJava} ${prob.functionName}(${argsStrJava}) {\n        // Your code here\n        return null;\n    }\n}`;
+    } else if (lang === "Python") {
+      return `class Solution:\n    def ${prob.functionName}(self, ${argsStrPy}):\n        # Your code here\n        pass`;
+    } else if (lang === "C++") {
+      return `class Solution {\npublic:\n    ${retCpp} ${prob.functionName}(${argsStrCpp}) {\n        // Your code here\n        return {};\n    }\n};`;
+    }
+    return "";
+  }
+
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newLang = e.target.value
     setLanguage(newLang)
-    setCode(STARTER_CODE[newLang])
+    if (problem) {
+      setCode(generateStarterCode(newLang, problem))
+    }
     setResult(null)
   }
 
   const submitCode = async () => {
     if (!problem) return
+    if (!userId) {
+      alert("User not identified. Please register your guest identity.");
+      setShowGuestModal(true);
+      return;
+    }
     setSubmitting(true)
     setResult(null)
     try {
-      // Mocking User ID 1 for now
       const payload = {
-        userId: 1,
+        userId: Number(localStorage.getItem("userId")),
         problemId: problem.id,
         code,
         language
@@ -92,6 +136,18 @@ export default function ProblemPage() {
   }
 
   const resColor = result?.status === 'ACCEPTED' ? 'text-green-500' : 'text-[#C1121F]'
+
+  if (!userId) {
+    return (
+      <GuestUserModal 
+        onSuccess={(id) => {
+          localStorage.setItem("userId", id.toString());
+          setUserId(id);
+          setShowGuestModal(false);
+        }} 
+      />
+    );
+  }
 
   return (
     <div className="relative pt-24 min-h-screen flex flex-col">

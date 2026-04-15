@@ -1,15 +1,18 @@
 package com.platform.service;
 
+import com.platform.dto.GuestUserRequest;
 import com.platform.dto.UserRequest;
 import com.platform.dto.UserResponse;
 import com.platform.entity.User;
 import com.platform.entity.enums.Role;
 import com.platform.exception.ResourceNotFoundException;
+import com.platform.exception.UsernameAlreadyExistsException;
 import com.platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -28,10 +31,21 @@ public class UserService {
 
     public UserResponse createUser(UserRequest request) {
         User user = User.builder()
-                .username(request.getUsername())
-                .email(request.getEmail())
-                .password(request.getPassword())
-                .role(Role.USER) // Force role USER
+                .name(request.getUsername())
+                .build();
+        User saved = userRepository.save(user);
+        return mapToResponse(saved);
+    }
+
+    public UserResponse createGuestUser(GuestUserRequest request) {
+        String trimmedName = request.getName().trim();
+
+        if (userRepository.findByName(trimmedName).isPresent()) {
+            throw new UsernameAlreadyExistsException("Username already exists");
+        }
+
+        User user = User.builder()
+                .name(trimmedName)
                 .build();
         User saved = userRepository.save(user);
         return mapToResponse(saved);
@@ -46,9 +60,7 @@ public class UserService {
     private UserResponse mapToResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .role(user.getRole())
+                .name(user.getName())
                 .build();
     }
 }

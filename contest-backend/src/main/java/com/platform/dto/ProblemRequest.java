@@ -4,6 +4,8 @@ import com.platform.entity.enums.Difficulty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import java.util.List;
+import jakarta.validation.Valid;
 
 @Data
 public class ProblemRequest {
@@ -24,8 +26,9 @@ public class ProblemRequest {
     @NotBlank(message = "Function name cannot be blank")
     private String functionName;
 
-    @NotBlank(message = "Parameter types cannot be blank")
-    private String parameterTypes;
+    @NotNull(message = "Parameters cannot be null")
+    @Valid
+    private List<ParameterDto> parameters;
 
     @NotBlank(message = "Return type cannot be blank")
     private String returnType;

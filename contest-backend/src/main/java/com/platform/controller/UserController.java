@@ -1,5 +1,6 @@
 package com.platform.controller;
 
+import com.platform.dto.GuestUserRequest;
 import com.platform.dto.UserRequest;
 import com.platform.dto.UserResponse;
 import com.platform.service.UserService;
@@ -21,6 +22,11 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserRequest request) {
         return new ResponseEntity<>(userService.createUser(request), HttpStatus.CREATED);
+    }
+
+    @PostMapping("/guest")
+    public ResponseEntity<UserResponse> createGuestUser(@Valid @RequestBody GuestUserRequest request) {
+        return new ResponseEntity<>(userService.createGuestUser(request), HttpStatus.CREATED);
     }
 
     @GetMapping

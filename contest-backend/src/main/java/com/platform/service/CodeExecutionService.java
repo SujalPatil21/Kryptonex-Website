@@ -1,99 +1,57 @@
 package com.platform.service;
 
+import com.platform.entity.Problem;
 import com.platform.entity.TestCase;
 import com.platform.entity.enums.SubmissionStatus;
-import com.platform.judge.CodeExecutor;
 import com.platform.judge.ExecutionResult;
+import com.platform.judge.generator.CodeGenerator;
+import com.platform.judge.parser.InputParser;
+import com.platform.judge.parser.JudgeComparator;
+import com.platform.judge.parser.OutputNormalizer;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * CodeExecutionService
- *
- * Orchestrates multi-testcase evaluation.
- *
- * Reliability fixes applied in this version:
- *
- *  1. CE detection uses result.isCompilationError() — a boolean flag set by
- *     the executor based on javac's exit code. No string parsing at all.
- *
- *  2. RE detection uses !result.isSuccess() combined with !result.isTimeout()
- *     and !result.isCompilationError(). isSuccess itself is purely exitCode == 0.
- *
- *  3. TLE detection uses result.isTimeout() — set when the process was
- *     destroyForcibly()'d after exceeding RUN_TIMEOUT_SECONDS.
- *
- *  4. EvaluationResult now includes failedTestcaseIndex (1-based, -1 = none)
- *     so callers can pinpoint exactly which test case caused a failure.
- *
- *  5. normalize() handles \r\n / \r line endings and trims per-line trailing
- *     whitespace to prevent false WRONG_ANSWER on platform differences.
- *
- *  6. Null + empty test case list are safely guarded.
- */
 @Service
 public class CodeExecutionService {
 
-    private final Map<String, CodeExecutor> executors;
+    private final DockerExecutionService dockerExecutionService;
+    private final InputParser inputParser;
+    private final CodeGenerator codeGenerator;
+    private final OutputNormalizer outputNormalizer;
+    private final JudgeComparator judgeComparator;
 
-    public CodeExecutionService(List<CodeExecutor> executorList) {
-        this.executors = executorList.stream()
-                .collect(Collectors.toMap(
-                        CodeExecutor::getSupportedLanguage,
-                        Function.identity()
-                ));
+    public CodeExecutionService(DockerExecutionService dockerExecutionService,
+                                InputParser inputParser,
+                                CodeGenerator codeGenerator,
+                                OutputNormalizer outputNormalizer,
+                                JudgeComparator judgeComparator) {
+        this.dockerExecutionService = dockerExecutionService;
+        this.inputParser = inputParser;
+        this.codeGenerator = codeGenerator;
+        this.outputNormalizer = outputNormalizer;
+        this.judgeComparator = judgeComparator;
     }
-
-    // ------------------------------------------------------------------ //
-    //  Result DTO                                                          //
-    // ------------------------------------------------------------------ //
 
     @Data
     @Builder
     public static class EvaluationResult {
         private SubmissionStatus status;
-        /** Number of test cases that produced the correct output. */
         private int passedCount;
-        /** Total number of test cases evaluated. */
         private int totalCount;
-        /**
-         * 1-based index of the first test case that failed.
-         * -1 when all test cases passed (ACCEPTED).
-         */
         private int failedTestcaseIndex;
-        /** Sum of execution times across all test cases (ms). */
         private long totalExecutionTime;
-        /** Human-readable verdict message. */
         private String verdictMessage;
-        /** Raw compiler output or runtime stderr for debugging. */
         private String errorDetail;
     }
 
-    // ------------------------------------------------------------------ //
-    //  Evaluate                                                            //
-    // ------------------------------------------------------------------ //
+    public EvaluationResult evaluate(Problem problem, String code, String language) {
 
-    public EvaluationResult evaluate(String code, String language, List<TestCase> testCases) {
-
-        // ---- 1. Resolve executor -----------------------------------------
-        CodeExecutor executor = executors.get(language);
-        if (executor == null) {
-            return EvaluationResult.builder()
-                    .status(SubmissionStatus.ERROR)
-                    .verdictMessage("Unsupported language: " + language)
-                    .passedCount(0)
-                    .totalCount(testCases == null ? 0 : testCases.size())
-                    .failedTestcaseIndex(-1)
-                    .totalExecutionTime(0)
-                    .build();
-        }
-
+        List<TestCase> testCases = problem.getTestCases();
         if (testCases == null || testCases.isEmpty()) {
             return EvaluationResult.builder()
                     .status(SubmissionStatus.ERROR)
@@ -105,76 +63,105 @@ public class CodeExecutionService {
                     .build();
         }
 
-        // ---- 2. Run each test case sequentially -------------------------
         long totalTime = 0;
-        int  passed    = 0;
-        int  total     = testCases.size();
+        int passed = 0;
+        int total = testCases.size();
 
         for (int i = 0; i < total; i++) {
-            TestCase tc         = testCases.get(i);
-            int      caseNumber = i + 1;            // 1-based for user messages
+            TestCase tc = testCases.get(i);
+            int caseNumber = i + 1;
 
-            ExecutionResult result = executor.execute(code, tc.getInput());
-            totalTime += result.getExecutionTime();
+            try {
+                // 1. Generate code for the specific test case
+                String parsedInputs = inputParser.parseInput(tc.getInputJson(), problem.getParameters(), language);
+                String generatedCode = codeGenerator.generateCode(problem, code, parsedInputs, language);
 
-            // ---- Compilation Error (checked first — same result for all TCs) ----
-            if (result.isCompilationError()) {
-                return EvaluationResult.builder()
-                        .status(SubmissionStatus.COMPILATION_ERROR)
-                        .verdictMessage("Compilation Error")
-                        .errorDetail(nullToEmpty(result.getError()))
-                        .passedCount(0)
-                        .totalCount(total)
-                        .failedTestcaseIndex(caseNumber)
-                        .totalExecutionTime(totalTime)
-                        .build();
-            }
+                // 2. Execute
+                ExecutionResult result = dockerExecutionService.execute(generatedCode, language);
+                totalTime += result.getExecutionTime();
 
-            // ---- Time Limit Exceeded ----------------------------------------
-            if (result.isTimeout()) {
-                return EvaluationResult.builder()
-                        .status(SubmissionStatus.TIME_LIMIT_EXCEEDED)
-                        .verdictMessage("Time Limit Exceeded on test case " + caseNumber)
+                // 3. Strict Verdict Priority
+                if (result.isCompilationError()) {
+                    return EvaluationResult.builder()
+                            .status(SubmissionStatus.COMPILATION_ERROR)
+                            .verdictMessage("Compilation Error")
+                            .errorDetail(nullToEmpty(result.getError()))
+                            .passedCount(0)
+                            .totalCount(total)
+                            .failedTestcaseIndex(caseNumber)
+                            .totalExecutionTime(totalTime)
+                            .build();
+                }
+
+                if (result.isOutputLimitExceeded()) {
+                    return EvaluationResult.builder()
+                            .status(SubmissionStatus.RUNTIME_ERROR)
+                            .verdictMessage("Output Limit Exceeded on test case " + caseNumber)
+                            .passedCount(passed)
+                            .totalCount(total)
+                            .failedTestcaseIndex(caseNumber)
+                            .totalExecutionTime(totalTime)
+                            .build();
+                }
+
+                if (result.isTimeout()) {
+                    return EvaluationResult.builder()
+                            .status(SubmissionStatus.TIME_LIMIT_EXCEEDED)
+                            .verdictMessage("Time Limit Exceeded on test case " + caseNumber)
+                            .passedCount(passed)
+                            .totalCount(total)
+                            .failedTestcaseIndex(caseNumber)
+                            .totalExecutionTime(totalTime)
+                            .build();
+                }
+
+                if (result.isRuntimeError()) {
+                    return EvaluationResult.builder()
+                            .status(SubmissionStatus.RUNTIME_ERROR)
+                            .verdictMessage("Runtime Error on test case " + caseNumber + " (exit code " + result.getExitCode() + ")")
+                            .errorDetail(nullToEmpty(result.getError()))
+                            .passedCount(passed)
+                            .totalCount(total)
+                            .failedTestcaseIndex(caseNumber)
+                            .totalExecutionTime(totalTime)
+                            .build();
+                }
+
+                // 4. Output Preparation & Normalization
+                String actualRaw = result.getOutput() == null ? "" : result.getOutput();
+                String expectedRaw = tc.getExpectedOutputJson() == null ? "" : tc.getExpectedOutputJson().toString();
+
+                String actual = normalize(actualRaw);
+                String expected = normalize(expectedRaw);
+
+                // 5. Comparison
+                if (!actual.equals(expected)) {
+                    return EvaluationResult.builder()
+                            .status(SubmissionStatus.WRONG_ANSWER)
+                            .verdictMessage("Wrong Answer on test case " + caseNumber +
+                                    "\nExpected: " + expected +
+                                    "\nActual: " + actual)
+                            .passedCount(passed)
+                            .totalCount(total)
+                            .failedTestcaseIndex(caseNumber)
+                            .totalExecutionTime(totalTime)
+                            .build();
+                }
+
+                passed++;
+
+            } catch (Exception e) {
+                 return EvaluationResult.builder()
+                        .status(SubmissionStatus.ERROR)
+                        .verdictMessage("Internal Judge Error on test case " + caseNumber + ": " + e.getMessage())
                         .passedCount(passed)
                         .totalCount(total)
                         .failedTestcaseIndex(caseNumber)
                         .totalExecutionTime(totalTime)
                         .build();
             }
-
-            // ---- Runtime Error — exit code != 0 (not a timeout, not CE) --------
-            if (!result.isSuccess()) {
-                return EvaluationResult.builder()
-                        .status(SubmissionStatus.RUNTIME_ERROR)
-                        .verdictMessage("Runtime Error on test case " + caseNumber
-                                + " (exit code " + result.getExitCode() + ")")
-                        .errorDetail(nullToEmpty(result.getError()))
-                        .passedCount(passed)
-                        .totalCount(total)
-                        .failedTestcaseIndex(caseNumber)
-                        .totalExecutionTime(totalTime)
-                        .build();
-            }
-
-            // ---- Wrong Answer -----------------------------------------------
-            String actual   = normalize(result.getOutput());
-            String expected = normalize(tc.getOutput());
-
-            if (!actual.equals(expected)) {
-                return EvaluationResult.builder()
-                        .status(SubmissionStatus.WRONG_ANSWER)
-                        .verdictMessage("Wrong Answer on test case " + caseNumber)
-                        .passedCount(passed)
-                        .totalCount(total)
-                        .failedTestcaseIndex(caseNumber)
-                        .totalExecutionTime(totalTime)
-                        .build();
-            }
-
-            passed++;
         }
 
-        // ---- 3. All passed -----------------------------------------------
         return EvaluationResult.builder()
                 .status(SubmissionStatus.ACCEPTED)
                 .verdictMessage("All " + total + " test case(s) passed")
@@ -185,27 +172,19 @@ public class CodeExecutionService {
                 .build();
     }
 
-    // ------------------------------------------------------------------ //
-    //  Private helpers                                                     //
-    // ------------------------------------------------------------------ //
+    private String normalize(String s) {
+        if (s == null) return "";
+        // 1. Full Line Ending Normalization
+        s = s.replace("\r\n", "\n").replace("\r", "\n");
+        // 2. Trim BEFORE processing
+        s = s.trim();
+        if (s.isEmpty()) return "";
 
-    /**
-     * Normalize output before comparison:
-     *  - Unify line endings (\r\n → \n, \r → \n).
-     *  - Strip trailing whitespace from each individual line.
-     *  - Strip leading/trailing blank lines from the whole result.
-     *
-     * This prevents false WRONG_ANSWERs caused solely by platform
-     * line-ending differences or trailing spaces in expected output.
-     */
-    private String normalize(String raw) {
-        if (raw == null) return "";
-        return raw.replace("\r\n", "\n")
-                  .replace("\r", "\n")
-                  .lines()
-                  .map(String::stripTrailing)
-                  .collect(Collectors.joining("\n"))
-                  .strip();
+        // 3. Line Processing & Ignore Empty Lines
+        return Arrays.stream(s.split("\\R"))
+                .map(line -> line.trim().replaceAll("\\s+", " "))
+                .filter(line -> !line.isEmpty())
+                .collect(Collectors.joining("\n"));
     }
 
     private String nullToEmpty(String s) {

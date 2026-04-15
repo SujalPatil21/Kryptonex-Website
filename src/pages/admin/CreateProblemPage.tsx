@@ -3,9 +3,14 @@ import { useNavigate, Link, useSearchParams } from "react-router-dom"
 import { API } from "../../config/api"
 
 interface TestCaseInputs {
-  input: string
-  output: string
+  parameterValues: Record<string, string>
+  expectedOutput: string
   isHidden: boolean
+}
+
+interface ParameterInput {
+  name: string
+  type: string
 }
 
 export default function CreateProblemPage() {
@@ -19,24 +24,43 @@ export default function CreateProblemPage() {
   const [sampleOutput, setSampleOutput] = useState("")
   const [searchParams] = useSearchParams()
   const [contestId, setContestId] = useState<number | "">(searchParams.get("contestId") ? Number(searchParams.get("contestId")) : "")
-  const [testCases, setTestCases] = useState<TestCaseInputs[]>([{ input: "", output: "", isHidden: true }])
   
   // Function Metadata for Backend Judge
   const [functionName, setFunctionName] = useState("")
-  const [parameterTypes, setParameterTypes] = useState("")
-  const [returnType, setReturnType] = useState("")
+  const [parameters, setParameters] = useState<ParameterInput[]>([{ name: "nums", type: "int_array" }, { name: "target", type: "int" }])
+  const [returnType, setReturnType] = useState("int_array")
+  
+  const [testCases, setTestCases] = useState<TestCaseInputs[]>([
+    { parameterValues: { nums: "", target: "" }, expectedOutput: "", isHidden: true }
+  ])
   
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const handleTestCaseChange = (index: number, field: keyof TestCaseInputs, value: string | boolean) => {
+  const handleTestCaseChange = (index: number, field: keyof TestCaseInputs, value: string | boolean | Record<string, string>) => {
     const updatedTestCases = [...testCases]
-    updatedTestCases[index] = { ...updatedTestCases[index], [field]: value }
+    updatedTestCases[index] = { ...updatedTestCases[index], [field]: value } as TestCaseInputs
+    setTestCases(updatedTestCases)
+  }
+
+  const handleParamValueChange = (tcIndex: number, paramName: string, value: string) => {
+    const updatedTestCases = [...testCases]
+    updatedTestCases[tcIndex] = {
+      ...updatedTestCases[tcIndex],
+      parameterValues: {
+        ...updatedTestCases[tcIndex].parameterValues,
+        [paramName]: value
+      }
+    }
     setTestCases(updatedTestCases)
   }
 
   const addTestCase = () => {
-    setTestCases([...testCases, { input: "", output: "", isHidden: true }])
+    const freshParameterValues: Record<string, string> = {}
+    parameters.forEach(p => {
+      if (p.name) freshParameterValues[p.name] = ""
+    })
+    setTestCases([...testCases, { parameterValues: freshParameterValues, expectedOutput: "", isHidden: true }])
   }
 
   const removeTestCase = (index: number) => {
@@ -46,12 +70,73 @@ export default function CreateProblemPage() {
     }
   }
 
+  const handleParameterChange = (index: number, field: keyof ParameterInput, value: string) => {
+    const updated = [...parameters]
+    const oldName = updated[index].name
+    updated[index] = { ...updated[index], [field]: value }
+    setParameters(updated)
+
+    // If name changed, update all test cases to use the new name
+    if (field === "name" && value !== oldName) {
+      setTestCases(testCases.map(tc => {
+        const newParamValues = { ...tc.parameterValues }
+        if (oldName && newParamValues.hasOwnProperty(oldName)) {
+          newParamValues[value] = newParamValues[oldName]
+          delete newParamValues[oldName]
+        } else {
+          newParamValues[value] = ""
+        }
+        return { ...tc, parameterValues: newParamValues }
+      }))
+    }
+  }
+
+  const addParameter = () => {
+    const newParamName = `param${parameters.length + 1}`
+    setParameters([...parameters, { name: newParamName, type: "int" }])
+    setTestCases(testCases.map(tc => ({
+      ...tc,
+      parameterValues: { ...tc.parameterValues, [newParamName]: "" }
+    })))
+  }
+
+  const removeParameter = (index: number) => {
+    if (parameters.length > 1) {
+      const paramToRemove = parameters[index].name
+      setParameters(parameters.filter((_, i) => i !== index))
+      setTestCases(testCases.map(tc => {
+        const newParamValues = { ...tc.parameterValues }
+        delete newParamValues[paramToRemove]
+        return { ...tc, parameterValues: newParamValues }
+      }))
+    }
+  }
+
+  const parseValue = (value: string, type: string) => {
+    const trimmed = value.trim()
+    if (type === "int") {
+      const num = Number(trimmed)
+      return isNaN(num) || trimmed === "" ? null : num
+    }
+    if (type === "int_array") {
+      if (trimmed === "") return [] // or null? usually empty array is valid if planned
+      const parts = trimmed.split(",").filter(s => s.trim() !== "")
+      const nums = parts.map(s => Number(s.trim()))
+      if (nums.some(n => isNaN(n))) return null
+      return nums
+    }
+    if (type === "string_array") {
+      return trimmed.split(",").map(s => s.trim()).filter(s => s !== "")
+    }
+    return trimmed // string
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
 
-    if (!title.trim() || !description.trim() || !contestId || timeLimit === "" || !functionName.trim() || !parameterTypes.trim() || !returnType.trim()) {
-      setError("Please fill out all required problem fields (including function metadata).")
+    if (!title.trim() || !description.trim() || !contestId || timeLimit === "" || !functionName.trim()) {
+      setError("Please fill out all required problem fields.")
       return
     }
 
@@ -68,7 +153,7 @@ export default function CreateProblemPage() {
         sampleOutput: sampleOutput.trim(),
         constraints: "",
         functionName: functionName.trim(),
-        parameterTypes: parameterTypes.trim(),
+        parameters: parameters,
         returnType: returnType.trim()
       }
 
@@ -84,11 +169,41 @@ export default function CreateProblemPage() {
 
       // 2. Create Test Cases iteratively
       for (const tc of testCases) {
-        if (!tc.input.trim() && !tc.output.trim()) continue // Skip empty optional cases
+        // Build inputJson object
+        const inputJson: Record<string, any> = {}
+        let isValid = true
+
+        for (const param of parameters) {
+          const rawValue = tc.parameterValues[param.name] || ""
+          const parsed = parseValue(rawValue, param.type)
+          if (parsed === null && param.type === "int") {
+            setError(`Invalid integer for parameter "${param.name}" in one of the test cases.`)
+            isValid = false
+            break
+          }
+          if (parsed === null && param.type === "int_array") {
+            setError(`Invalid integer array for parameter "${param.name}". Use comma separated numbers (e.g. 1,2,3).`)
+            isValid = false
+            break
+          }
+          inputJson[param.name] = parsed
+        }
+
+        if (!isValid) {
+          setLoading(false)
+          return
+        }
+
+        const expectedOutput = parseValue(tc.expectedOutput, returnType)
+        if (expectedOutput === null && (returnType === "int" || returnType === "int_array")) {
+          setError(`Invalid expected output format. Must match type: ${returnType}`)
+          setLoading(false)
+          return
+        }
 
         const tcPayload = {
-          input: tc.input,
-          output: tc.output,
+          inputJson: inputJson,
+          expectedOutputJson: expectedOutput,
           isHidden: tc.isHidden
         }
 
@@ -162,21 +277,44 @@ export default function CreateProblemPage() {
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="font-mono text-white/50 text-[10px] uppercase tracking-widest">Parameter Types</label>
-                <input type="text" value={parameterTypes} onChange={(e) => setParameterTypes(e.target.value)}
-                  className="w-full bg-[#050505] border border-white/10 text-white p-3 font-mono text-sm focus:outline-none focus:border-[#D4AF37]/50 transition-colors"
-                  placeholder="e.g. int[], int" required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="font-mono text-white/50 text-[10px] uppercase tracking-widest">Return Type</label>
-                <input type="text" value={returnType} onChange={(e) => setReturnType(e.target.value)}
-                  className="w-full bg-[#050505] border border-white/10 text-white p-3 font-mono text-sm focus:outline-none focus:border-[#D4AF37]/50 transition-colors"
-                  placeholder="e.g. int[]" required
-                />
-              </div>
+            <div className="space-y-4">
+              <h4 className="font-mono text-white/50 text-[10px] uppercase tracking-widest">Parameters</h4>
+              {parameters.map((param, index) => (
+                <div key={index} className="flex gap-4 items-end">
+                  <div className="flex-1 space-y-2">
+                    <label className="font-mono text-white/50 text-[10px] uppercase tracking-widest">Name</label>
+                    <input type="text" value={param.name} onChange={(e) => handleParameterChange(index, "name", e.target.value)}
+                      className="w-full bg-[#050505] border border-white/10 text-white p-2 font-mono text-sm focus:border-[#D4AF37]/50"
+                      placeholder="e.g. nums" required
+                    />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <label className="font-mono text-white/50 text-[10px] uppercase tracking-widest">Type</label>
+                    <select value={param.type} onChange={(e) => handleParameterChange(index, "type", e.target.value)}
+                      className="w-full bg-[#050505] border border-white/10 text-white p-2 font-mono text-sm uppercase focus:border-[#D4AF37]/50"
+                    >
+                      <option value="int">int</option>
+                      <option value="string">string</option>
+                      <option value="int_array">int_array</option>
+                      <option value="string_array">string_array</option>
+                    </select>
+                  </div>
+                  <button type="button" onClick={() => removeParameter(index)} className="font-mono text-red-500/70 p-2 text-xs uppercase mb-1">X</button>
+                </div>
+              ))}
+              <button type="button" onClick={addParameter} className="text-[#D4AF37] font-mono text-[10px] uppercase">+ Add Parameter</button>
+            </div>
+
+            <div className="space-y-2">
+              <label className="font-mono text-white/50 text-[10px] uppercase tracking-widest">Return Type</label>
+              <select value={returnType} onChange={(e) => setReturnType(e.target.value)}
+                className="w-full bg-[#050505] border border-white/10 text-white p-3 font-mono text-sm uppercase focus:border-[#D4AF37]/50"
+              >
+                <option value="int">int</option>
+                <option value="string">string</option>
+                <option value="int_array">int_array</option>
+                <option value="string_array">string_array</option>
+              </select>
             </div>
           </div>
 
@@ -241,18 +379,45 @@ export default function CreateProblemPage() {
                 
                 <h4 className="font-mono text-white/40 text-[10px] uppercase tracking-widest">Case #{index + 1}</h4>
                 
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2 block">
-                    <label className="font-mono text-white/50 text-[9px] uppercase tracking-widest">Standard Input</label>
-                    <textarea value={tc.input} onChange={(e) => handleTestCaseChange(index, "input", e.target.value)} rows={3}
-                      className="w-full bg-black border border-white/10 text-white p-3 font-mono text-xs focus:outline-none focus:border-[#D4AF37]/50" required
-                    />
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <label className="font-mono text-[#D4AF37] text-[9px] uppercase tracking-widest block mb-2">Input Parameters</label>
+                    <div className="space-y-3">
+                      {parameters.map((param) => (
+                        <div key={param.name} className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <label className="font-mono text-white/40 text-[8px] uppercase">{param.name}</label>
+                            <span className="font-mono text-white/20 text-[8px] uppercase italic">{param.type}</span>
+                          </div>
+                          <input
+                            type={param.type === "int" ? "number" : "text"}
+                            value={tc.parameterValues[param.name] || ""}
+                            onChange={(e) => handleParamValueChange(index, param.name, e.target.value)}
+                            className="w-full bg-black border border-white/10 text-[#D4AF37] p-2 font-mono text-xs focus:outline-none focus:border-[#D4AF37]/50"
+                            placeholder={param.type === "int_array" || param.type === "string_array" ? "e.g. 1, 2, 3" : "e.g. value"}
+                            required
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-2 block">
-                    <label className="font-mono text-white/50 text-[9px] uppercase tracking-widest">Expected Output</label>
-                    <textarea value={tc.output} onChange={(e) => handleTestCaseChange(index, "output", e.target.value)} rows={3}
-                      className="w-full bg-black border border-white/10 text-white p-3 font-mono text-xs focus:outline-none focus:border-[#D4AF37]/50" required
-                    />
+
+                  <div className="space-y-2 flex flex-col">
+                    <label className="font-mono text-[#D4AF37] text-[9px] uppercase tracking-widest block mb-2">Expected Output</label>
+                    <div className="flex-1">
+                       <div className="flex justify-between items-center mb-1">
+                          <label className="font-mono text-white/40 text-[8px] uppercase">Value</label>
+                          <span className="font-mono text-white/20 text-[8px] uppercase italic">{returnType}</span>
+                        </div>
+                        <textarea 
+                          value={tc.expectedOutput} 
+                          onChange={(e) => handleTestCaseChange(index, "expectedOutput", e.target.value)} 
+                          rows={parameters.length > 2 ? parameters.length * 2 : 3}
+                          className="w-full bg-black border border-white/10 text-[#D4AF37] p-3 font-mono text-xs focus:outline-none focus:border-[#D4AF37]/50" 
+                          required
+                          placeholder={returnType.includes("array") ? "e.g. 0, 1" : "e.g. 15"}
+                        />
+                    </div>
                   </div>
                 </div>
                 

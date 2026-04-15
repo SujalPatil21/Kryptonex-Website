@@ -1,11 +1,15 @@
 package com.platform.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+
+import java.util.Map;
 
 @Data
 public class TestCaseRequest {
-    private String input;
-    private String output;
+    private Map<String, Object> inputJson;
+    private Object expectedOutputJson;
+
+    @JsonProperty("isHidden")
     private boolean isHidden;
 }

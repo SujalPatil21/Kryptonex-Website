@@ -1,6 +1,6 @@
 export interface LeaderboardRow {
   userId: number
-  username: string
+  name: string
   rank: number
   score: number
   problemsSolved: number
@@ -21,8 +21,8 @@ export default function LeaderboardTable({ entries }: { entries: LeaderboardRow[
       <table className="w-full text-left font-mono text-sm whitespace-nowrap">
         <thead className="bg-[#0A0A0A] border-b border-white/10 text-[#D4AF37] uppercase tracking-widest text-[10px]">
           <tr>
-            <th className="py-4 px-6">Rank</th>
-            <th className="py-4 px-6">Username</th>
+            <th className="py-4 px-6 text-center">Rank</th>
+            <th className="py-4 px-6">Name</th>
             <th className="py-4 px-6">Score</th>
             <th className="py-4 px-6 text-center">Solved</th>
             <th className="py-4 px-6 text-right">Time (s)</th>
@@ -35,7 +35,7 @@ export default function LeaderboardTable({ entries }: { entries: LeaderboardRow[
                  {entry.rank === 1 && <span className="text-[#D4AF37] mr-2">★</span>}
                  {entry.rank}
               </td>
-              <td className="py-4 px-6 font-inter text-white">{entry.username}</td>
+              <td className="py-4 px-6 font-inter text-white">{entry.name}</td>
               <td className="py-4 px-6 font-bold">{entry.score}</td>
               <td className="py-4 px-6 text-center">{entry.problemsSolved}</td>
               <td className="py-4 px-6 text-right text-white/40">{entry.time}</td>

@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 public class LeaderboardResponse {
     private int rank;
     private Long userId;
-    private String username;
+    private String name;
     private int score;
     private long time;
     private int problemsSolved;

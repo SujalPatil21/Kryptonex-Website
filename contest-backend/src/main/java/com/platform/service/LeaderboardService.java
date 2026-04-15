@@ -36,7 +36,7 @@ public class LeaderboardService {
         for (Map.Entry<Long, List<Submission>> entry : byUser.entrySet()) {
             Long userId = entry.getKey();
             List<Submission> userSubs = entry.getValue();
-            String username = userSubs.get(0).getUser().getUsername();
+            String name = userSubs.get(0).getUser().getName();
 
             // Group by Problem to find best submission per problem
             Map<Long, List<Submission>> byProblem = userSubs.stream()
@@ -66,7 +66,7 @@ public class LeaderboardService {
 
             leaderboard.add(LeaderboardResponse.builder()
                     .userId(userId)
-                    .username(username)
+                    .name(name)
                     .score(totalScore)
                     .time(penaltyTime)
                     .problemsSolved(problemsSolved)
