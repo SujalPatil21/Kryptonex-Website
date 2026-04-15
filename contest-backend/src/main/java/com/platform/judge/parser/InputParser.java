@@ -58,7 +58,7 @@ public class InputParser {
             case "string_array":
                 return "String[] " + name + " = new String[]" + jsonVal.replace("[", "{").replace("]", "}") + ";";
             default:
-                return "Object " + name + " = " + jsonVal + ";";
+                throw new IllegalArgumentException("Unsupported input parameter type for Java: " + type);
         }
     }
     

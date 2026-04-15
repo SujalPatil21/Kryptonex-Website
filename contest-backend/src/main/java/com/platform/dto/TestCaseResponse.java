@@ -12,7 +12,7 @@ public class TestCaseResponse {
     private Long id;
     private Long problemId;
     private Map<String, Object> inputJson;
-    private Object expectedOutputJson;
+    private String expectedOutputJson;
 
     @JsonProperty("isHidden")
     private boolean isHidden;

@@ -12,6 +12,8 @@ import lombok.Builder;
 import lombok.Data;
 import org.springframework.stereotype.Service;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -50,6 +52,20 @@ public class CodeExecutionService {
     }
 
     public EvaluationResult evaluate(Problem problem, String code, String language) {
+        // 0. Validation (Language specific)
+        if (language.equalsIgnoreCase("java")) {
+            String validationError = validateUserCode(code);
+            if (validationError != null) {
+                return EvaluationResult.builder()
+                        .status(SubmissionStatus.COMPILATION_ERROR)
+                        .verdictMessage("Invalid Submission: " + validationError)
+                        .passedCount(0)
+                        .totalCount(problem.getTestCases() != null ? problem.getTestCases().size() : 0)
+                        .failedTestcaseIndex(-1)
+                        .totalExecutionTime(0)
+                        .build();
+            }
+        }
 
         List<TestCase> testCases = problem.getTestCases();
         if (testCases == null || testCases.isEmpty()) {
@@ -76,12 +92,24 @@ public class CodeExecutionService {
                 String parsedInputs = inputParser.parseInput(tc.getInputJson(), problem.getParameters(), language);
                 String generatedCode = codeGenerator.generateCode(problem, code, parsedInputs, language);
 
+                // LOG GENERATED CODE (MANDATORY)
+                System.out.println("===== GENERATED CODE =====");
+                System.out.println(generatedCode);
+
                 // 2. Execute
                 ExecutionResult result = dockerExecutionService.execute(generatedCode, language);
                 totalTime += result.getExecutionTime();
 
                 // 3. Strict Verdict Priority
                 if (result.isCompilationError()) {
+                    // DEBUG FALLBACK (SAFE)
+                    try {
+                        String fileName = "debug_" + System.currentTimeMillis() + ".java";
+                        Files.write(Paths.get(fileName), generatedCode.getBytes());
+                    } catch (Exception e) {
+                        System.err.println("Debug file write failed: " + e.getMessage());
+                    }
+
                     return EvaluationResult.builder()
                             .status(SubmissionStatus.COMPILATION_ERROR)
                             .verdictMessage("Compilation Error")
@@ -129,18 +157,20 @@ public class CodeExecutionService {
 
                 // 4. Output Preparation & Normalization
                 String actualRaw = result.getOutput() == null ? "" : result.getOutput();
-                String expectedRaw = tc.getExpectedOutputJson() == null ? "" : tc.getExpectedOutputJson().toString();
+                String expectedRaw = tc.getExpectedOutputJson() == null ? "" : tc.getExpectedOutputJson();
+                
+                String expectedCleaned = cleanExpected(expectedRaw);
 
-                String actual = normalize(actualRaw);
-                String expected = normalize(expectedRaw);
+                String actualNormalized = normalize(actualRaw);
+                String expectedNormalized = normalize(expectedCleaned);
 
                 // 5. Comparison
-                if (!actual.equals(expected)) {
+                if (!actualNormalized.equals(expectedNormalized)) {
                     return EvaluationResult.builder()
                             .status(SubmissionStatus.WRONG_ANSWER)
                             .verdictMessage("Wrong Answer on test case " + caseNumber +
-                                    "\nExpected: " + expected +
-                                    "\nActual: " + actual)
+                                    "\nExpected: " + expectedCleaned +
+                                    "\nActual: " + actualNormalized)
                             .passedCount(passed)
                             .totalCount(total)
                             .failedTestcaseIndex(caseNumber)
@@ -172,6 +202,15 @@ public class CodeExecutionService {
                 .build();
     }
 
+    private String validateUserCode(String code) {
+        String lower = code.toLowerCase();
+        if (lower.contains("import ")) return "Do not include import statements.";
+        if (lower.contains("class ")) return "Do not include class declarations.";
+        if (lower.contains("static void main")) return "Do not include a main method.";
+        if (lower.contains("system.out.")) return "Direct use of System.out is forbidden.";
+        return null;
+    }
+
     private String normalize(String s) {
         if (s == null) return "";
         // 1. Full Line Ending Normalization
@@ -189,5 +228,17 @@ public class CodeExecutionService {
 
     private String nullToEmpty(String s) {
         return s == null ? "" : s;
+    }
+
+    private String cleanExpected(String expected) {
+        if (expected == null) return "";
+        String s = expected.trim();
+        // Remove outer brackets ONLY if present
+        if (s.startsWith("[") && s.endsWith("]")) {
+            s = s.substring(1, s.length() - 1);
+        }
+        // Normalize spaces: "0, 1" -> "0,1"
+        s = s.replaceAll("\\s+", "");
+        return s;
     }
 }

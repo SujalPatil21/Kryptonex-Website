@@ -8,7 +8,7 @@ import java.util.Map;
 @Data
 public class TestCaseRequest {
     private Map<String, Object> inputJson;
-    private Object expectedOutputJson;
+    private String expectedOutputJson;
 
     @JsonProperty("isHidden")
     private boolean isHidden;

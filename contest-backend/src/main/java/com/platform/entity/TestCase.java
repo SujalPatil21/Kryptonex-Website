@@ -27,9 +27,8 @@ public class TestCase {
     @Column(columnDefinition = "text", nullable = false)
     private Map<String, Object> inputJson;
 
-    @Convert(converter = JsonObjectConverter.class)
     @Column(columnDefinition = "text", nullable = false)
-    private Object expectedOutputJson;
+    private String expectedOutputJson;
 
     @Column(nullable = false)
     private boolean isHidden;

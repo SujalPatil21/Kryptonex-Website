@@ -194,16 +194,15 @@ export default function CreateProblemPage() {
           return
         }
 
-        const expectedOutput = parseValue(tc.expectedOutput, returnType)
-        if (expectedOutput === null && (returnType === "int" || returnType === "int_array")) {
-          setError(`Invalid expected output format. Must match type: ${returnType}`)
-          setLoading(false)
-          return
+        // Normalization warning (non-blocking)
+        const expectedOutputVal = tc.expectedOutput.trim();
+        if (/[\[\]]/.test(expectedOutputVal)) {
+          console.warn(`Case #${testCases.indexOf(tc) + 1}: Bracket format detected. Will be auto-normalized by judge.`);
         }
 
         const tcPayload = {
           inputJson: inputJson,
-          expectedOutputJson: expectedOutput,
+          expectedOutputJson: expectedOutputVal,
           isHidden: tc.isHidden
         }
 
